@@ -1,0 +1,7 @@
+[Unit]
+Description=Reconcile Focus Guard domain blocking
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/focus-guardctl reconcile

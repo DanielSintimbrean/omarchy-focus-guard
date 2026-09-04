@@ -1,0 +1,354 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PATH=/usr/local/sbin:/usr/local/bin:/usr/bin
+
+YOUTUBE_SUPPORT_DOMAINS=(
+  youtu.be
+  googlevideo.com
+  ytimg.com
+  ggpht.com
+  youtubei.googleapis.com
+  youtube-nocookie.com
+)
+
+root_prefix=${FOCUS_GUARD_ROOT:-}
+etc_dir="${root_prefix}/etc/focus-guard"
+state_dir="${root_prefix}/var/lib/focus-guard"
+schedule_file="$etc_dir/schedule.conf"
+domains_file="$etc_dir/domains.conf"
+state_file="$state_dir/state.conf"
+block_file="${root_prefix}/etc/NetworkManager/dnsmasq.d/90-focus-guard.conf"
+
+die() {
+  printf 'focus-guardctl: %s\n' "$*" >&2
+  exit 1
+}
+
+require_root() {
+  if [[ -z $root_prefix && ${EUID:-$(id -u)} -ne 0 ]]; then
+    die "this command needs administrator privileges"
+  fi
+}
+
+ensure_dirs() {
+  mkdir -p "$etc_dir" "$state_dir" "$(dirname "$block_file")"
+  chmod 755 "$etc_dir" "$state_dir" "$(dirname "$block_file")"
+}
+
+read_field() {
+  local file=$1 key=$2 fallback=$3 value
+  if [[ -r $file ]]; then
+    value=$(awk -F= -v wanted="$key" '$1 == wanted { print substr($0, index($0, "=") + 1); exit }' "$file")
+  fi
+  printf '%s\n' "${value:-$fallback}"
+}
+
+valid_time() {
+  local value=$1 hour minute
+  [[ $value =~ ^([0-9]{2}):([0-9]{2})$ ]] || return 1
+  hour=$((10#${BASH_REMATCH[1]}))
+  minute=$((10#${BASH_REMATCH[2]}))
+  (( hour < 24 && minute < 60 ))
+}
+
+time_minutes() {
+  local value=$1
+  printf '%s\n' "$((10#${value:0:2} * 60 + 10#${value:3:2}))"
+}
+
+valid_domain() {
+  local domain=$1 label
+  [[ ${#domain} -le 253 && $domain == *.* ]] || return 1
+  [[ $domain =~ ^[a-z0-9.-]+$ ]] || return 1
+  IFS=. read -ra labels <<< "$domain"
+  for label in "${labels[@]}"; do
+    [[ ${#label} -ge 1 && ${#label} -le 63 ]] || return 1
+    [[ $label =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] || return 1
+  done
+}
+
+write_state() {
+  local manual_until=$1 override_until=$2 recovery=$3 temp
+  ensure_dirs
+  temp=$(mktemp "$state_file.XXXXXX")
+  {
+    printf 'MANUAL_UNTIL=%s\n' "$manual_until"
+    printf 'OVERRIDE_UNTIL=%s\n' "$override_until"
+    printf 'RECOVERY=%s\n' "$recovery"
+  } > "$temp"
+  chmod 644 "$temp"
+  mv -f "$temp" "$state_file"
+}
+
+ensure_defaults() {
+  local temp domain changed
+  ensure_dirs
+  if [[ ! -f $schedule_file ]]; then
+    temp=$(mktemp "$schedule_file.XXXXXX")
+    printf 'START=09:00\nEND=17:00\n' > "$temp"
+    chmod 644 "$temp"
+    mv -f "$temp" "$schedule_file"
+  fi
+  if [[ ! -f $domains_file ]]; then
+    temp=$(mktemp "$domains_file.XXXXXX")
+    printf '%s\n' \
+      facebook.com instagram.com threads.net x.com twitter.com tiktok.com \
+      reddit.com youtube.com youtu.be twitch.tv > "$temp"
+    chmod 644 "$temp"
+    mv -f "$temp" "$domains_file"
+  fi
+
+  if grep -Fxq 'youtube.com' "$domains_file" 2>/dev/null; then
+    temp=$(mktemp "$domains_file.XXXXXX")
+    cp "$domains_file" "$temp"
+    changed=0
+    for domain in "${YOUTUBE_SUPPORT_DOMAINS[@]}"; do
+      if ! grep -Fxq "$domain" "$temp"; then
+        printf '%s\n' "$domain" >> "$temp"
+        changed=1
+      fi
+    done
+    if (( changed == 1 )); then
+      sort -u -o "$temp" "$temp"
+      chmod 644 "$temp"
+      mv -f "$temp" "$domains_file"
+    else
+      rm -f "$temp"
+    fi
+  fi
+
+  if [[ ! -f $state_file ]]; then
+    write_state 0 0 0
+  fi
+}
+
+load_values() {
+  start_time=$(read_field "$schedule_file" START 09:00)
+  end_time=$(read_field "$schedule_file" END 17:00)
+  valid_time "$start_time" || start_time=09:00
+  valid_time "$end_time" || end_time=17:00
+  start_minutes=$(time_minutes "$start_time")
+  end_minutes=$(time_minutes "$end_time")
+  manual_until=$(read_field "$state_file" MANUAL_UNTIL 0)
+  override_until=$(read_field "$state_file" OVERRIDE_UNTIL 0)
+  recovery=$(read_field "$state_file" RECOVERY 0)
+  [[ $manual_until =~ ^[0-9]+$ ]] || manual_until=0
+  [[ $override_until =~ ^[0-9]+$ ]] || override_until=0
+  [[ $recovery == 1 ]] || recovery=0
+  now_epoch=${FOCUS_GUARD_NOW:-$(date +%s)}
+  [[ $now_epoch =~ ^[0-9]+$ ]] || die "FOCUS_GUARD_NOW must be an epoch timestamp"
+}
+
+schedule_is_active() {
+  local weekday minute
+  weekday=$(date -d "@$now_epoch" +%u)
+  minute=$((10#$(date -d "@$now_epoch" +%H) * 60 + 10#$(date -d "@$now_epoch" +%M)))
+  (( weekday <= 5 && minute >= start_minutes && minute < end_minutes ))
+}
+
+next_weekday_boundary() {
+  local clock=$1 base_date candidate_date candidate weekday offset
+  base_date=$(date -d "@$now_epoch" +%F)
+  for offset in 0 1 2 3 4 5 6 7; do
+    candidate_date=$(date -d "$base_date + $offset day" +%F)
+    candidate=$(date -d "$candidate_date $clock" +%s)
+    weekday=$(date -d "@$candidate" +%u)
+    if (( weekday <= 5 && candidate > now_epoch )); then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  die "could not calculate the next schedule boundary"
+}
+
+calculate_state() {
+  scheduled=false
+  manual=false
+  overridden=false
+  desired=false
+  mode=inactive
+
+  if schedule_is_active; then scheduled=true; fi
+  if (( manual_until > now_epoch )); then manual=true; fi
+  if (( override_until > now_epoch )); then overridden=true; fi
+
+  if (( recovery == 1 )); then
+    mode=recovery
+  elif [[ $manual == true ]]; then
+    desired=true
+    mode=manual
+  elif [[ $scheduled == true && $overridden == false ]]; then
+    desired=true
+    mode=scheduled
+  elif [[ $overridden == true ]]; then
+    mode=override
+  fi
+}
+
+reload_dns() {
+  if [[ -n $root_prefix || ${FOCUS_GUARD_SKIP_DNS_RELOAD:-0} == 1 ]]; then
+    return 0
+  fi
+  if command -v nmcli >/dev/null 2>&1; then
+    nmcli general reload dns-full >/dev/null
+  else
+    systemctl reload NetworkManager
+  fi
+  if command -v resolvectl >/dev/null 2>&1; then
+    resolvectl flush-caches >/dev/null 2>&1 || true
+  fi
+}
+
+apply_block() {
+  local changed=0 temp domain
+  if [[ $desired == true ]]; then
+    ensure_dirs
+    temp=$(mktemp "$block_file.XXXXXX")
+    printf '# Managed by Focus Guard. Changes are replaced automatically.\n' > "$temp"
+    if [[ -r $domains_file ]]; then
+      while IFS= read -r domain; do
+        [[ -n $domain ]] || continue
+        printf 'address=/%s/0.0.0.0\n' "$domain" >> "$temp"
+        printf 'address=/%s/::\n' "$domain" >> "$temp"
+      done < "$domains_file"
+    fi
+    chmod 644 "$temp"
+    if [[ -f $block_file ]] && cmp -s "$temp" "$block_file"; then
+      rm -f "$temp"
+    else
+      mv -f "$temp" "$block_file"
+      changed=1
+    fi
+  elif [[ -e $block_file ]]; then
+    rm -f "$block_file"
+    changed=1
+  fi
+
+  if (( changed == 1 )); then reload_dns; fi
+}
+
+domain_count() {
+  if [[ ! -r $domains_file ]]; then printf '0\n'; return; fi
+  awk 'NF { count++ } END { print count + 0 }' "$domains_file"
+}
+
+print_status() {
+  local actual=false healthy=false count
+  [[ -s $block_file ]] && actual=true
+  [[ $actual == $desired ]] && healthy=true
+  count=$(domain_count)
+  printf '{"active":%s,"expectedActive":%s,"healthy":%s,"mode":"%s","scheduled":%s,"manual":%s,"overridden":%s,"recovery":%s,"startTime":"%s","endTime":"%s","manualUntil":%s,"overrideUntil":%s,"domainCount":%s}\n' \
+    "$actual" "$desired" "$healthy" "$mode" "$scheduled" "$manual" "$overridden" \
+    "$([[ $recovery == 1 ]] && printf true || printf false)" "$start_time" "$end_time" \
+    "$manual_until" "$override_until" "$count"
+}
+
+reconcile() {
+  require_root
+  ensure_defaults
+  load_values
+  local state_changed=0
+  if (( manual_until > 0 && manual_until <= now_epoch )); then manual_until=0; state_changed=1; fi
+  if (( override_until > 0 && override_until <= now_epoch )); then override_until=0; state_changed=1; fi
+  if (( state_changed == 1 )); then write_state "$manual_until" "$override_until" "$recovery"; fi
+  calculate_state
+  apply_block
+  print_status
+}
+
+configure() {
+  require_root
+  (( $# >= 3 )) || die "usage: focus-guardctl configure HH:MM HH:MM domain [domain ...]"
+  local new_start=$1 new_end=$2 temp domain
+  shift 2
+  valid_time "$new_start" || die "invalid start time: $new_start"
+  valid_time "$new_end" || die "invalid end time: $new_end"
+  (( $(time_minutes "$new_start") < $(time_minutes "$new_end") )) || die "end time must be later than start time"
+
+  ensure_defaults
+  temp=$(mktemp "$domains_file.XXXXXX")
+  for domain in "$@"; do
+    domain=${domain,,}
+    valid_domain "$domain" || { rm -f "$temp"; die "invalid domain: $domain"; }
+    printf '%s\n' "$domain" >> "$temp"
+  done
+  sort -u -o "$temp" "$temp"
+  chmod 644 "$temp"
+  mv -f "$temp" "$domains_file"
+
+  temp=$(mktemp "$schedule_file.XXXXXX")
+  printf 'START=%s\nEND=%s\n' "$new_start" "$new_end" > "$temp"
+  chmod 644 "$temp"
+  mv -f "$temp" "$schedule_file"
+  reconcile
+}
+
+enable_now() {
+  require_root
+  ensure_defaults
+  load_values
+  manual_until=$(next_weekday_boundary "$end_time")
+  write_state "$manual_until" 0 0
+  reconcile
+}
+
+disable_until_next_period() {
+  require_root
+  ensure_defaults
+  load_values
+  override_until=$(next_weekday_boundary "$start_time")
+  write_state 0 "$override_until" 0
+  reconcile
+}
+
+recover() {
+  require_root
+  ensure_defaults
+  write_state 0 0 1
+  load_values
+  calculate_state
+  apply_block
+  print_status
+}
+
+resume() {
+  require_root
+  ensure_defaults
+  write_state 0 0 0
+  reconcile
+}
+
+show_status() {
+  load_values
+  calculate_state
+  print_status
+}
+
+case ${1:-status} in
+  status)
+    show_status
+    ;;
+  reconcile)
+    reconcile
+    ;;
+  configure)
+    shift
+    configure "$@"
+    ;;
+  enable)
+    enable_now
+    ;;
+  disable)
+    disable_until_next_period
+    ;;
+  recover)
+    recover
+    ;;
+  resume)
+    resume
+    ;;
+  *)
+    die "unknown command: $1"
+    ;;
+esac

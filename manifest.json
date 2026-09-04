@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.danielsintimbrean.focus-guard",
+  "name": "Focus Guard",
+  "version": "0.1.0",
+  "author": "Daniel Sintimbrean",
+  "license": "MIT",
+  "description": "System-wide distraction blocking with a weekday schedule and an arithmetic pause before disabling",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Focus Guard",
+    "description": "Block distracting domains during work hours",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

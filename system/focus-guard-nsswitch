@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PATH=/usr/local/sbin:/usr/local/bin:/usr/bin
+
+root_prefix=${FOCUS_GUARD_ROOT:-}
+state_dir="${root_prefix}/var/lib/focus-guard"
+nsswitch_file="${root_prefix}/etc/nsswitch.conf"
+backup_file="$state_dir/nsswitch.conf.original"
+missing_marker="$state_dir/nsswitch.conf.was-missing"
+managed_file="$state_dir/nsswitch.conf.managed"
+
+die() {
+  printf 'focus-guard-nsswitch: %s\n' "$*" >&2
+  exit 1
+}
+
+require_root() {
+  if [[ -z $root_prefix && ${EUID:-$(id -u)} -ne 0 ]]; then
+    die "this command needs administrator privileges"
+  fi
+}
+
+ensure_state_dir() {
+  mkdir -p "$state_dir"
+  chmod 755 "$state_dir"
+}
+
+backup_original() {
+  ensure_state_dir
+  if [[ -e $backup_file || -L $backup_file || -e $missing_marker ]]; then
+    return 0
+  fi
+
+  if [[ -e $nsswitch_file || -L $nsswitch_file ]]; then
+    cp -a --no-dereference "$nsswitch_file" "$backup_file"
+  else
+    touch "$missing_marker"
+  fi
+}
+
+remove_resolve_lookup() {
+  local temp mode
+
+  [[ -e $nsswitch_file || -L $nsswitch_file ]] || return 0
+  grep -Eq '^[[:space:]]*hosts:.*[[:space:]]resolve([[:space:]]|$)' "$nsswitch_file" || return 0
+
+  temp=$(mktemp "$nsswitch_file.XXXXXX")
+  sed -E '/^[[:space:]]*hosts:/ s/[[:space:]]+resolve([[:space:]]+\[[^]]+\])?([[:space:]]|$)/\2/g' \
+    "$nsswitch_file" > "$temp"
+  mode=$(stat -c '%a' "$nsswitch_file")
+  chmod "$mode" "$temp"
+  chown --reference="$nsswitch_file" "$temp"
+  mv -f "$temp" "$nsswitch_file"
+}
+
+enable() {
+  require_root
+  backup_original
+  remove_resolve_lookup
+  if [[ -e $nsswitch_file || -L $nsswitch_file ]]; then
+    cp -a --no-dereference "$nsswitch_file" "$managed_file"
+  fi
+}
+
+restore() {
+  require_root
+
+  if [[ -e $managed_file || -L $managed_file ]] &&
+     [[ -e $nsswitch_file || -L $nsswitch_file ]] &&
+     cmp -s "$managed_file" "$nsswitch_file"; then
+    if [[ -e $backup_file || -L $backup_file ]]; then
+      cp -a --no-dereference --remove-destination "$backup_file" "$nsswitch_file"
+    elif [[ -e $missing_marker ]]; then
+      rm -f "$nsswitch_file"
+    fi
+  elif [[ -e $managed_file || -L $managed_file ]]; then
+    printf 'Focus Guard left %s unchanged because it was modified after setup.\n' "$nsswitch_file" >&2
+  fi
+
+  rm -f "$managed_file"
+}
+
+case ${1:-} in
+  enable)
+    enable
+    ;;
+  restore)
+    restore
+    ;;
+  *)
+    die "usage: focus-guard-nsswitch enable|restore"
+    ;;
+esac
