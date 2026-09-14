@@ -32,17 +32,21 @@ assert_contains() {
 
 block_file="$test_root/etc/NetworkManager/dnsmasq.d/90-focus-guard.conf"
 
-run_at "2026-09-04 10:00" configure 09:00 17:00 reddit.com youtube.com >/dev/null
+run_at "2026-09-04 10:00" configure 09:00 17:00 reddit.com youtube.com x.com >/dev/null
 [[ -f $block_file ]] || fail "scheduled blocking did not create the DNS rules"
 grep -q '^address=/reddit.com/0.0.0.0$' "$block_file" || fail "reddit IPv4 rule is missing"
 grep -q '^address=/reddit.com/::$' "$block_file" || fail "reddit IPv6 rule is missing"
 grep -q '^address=/googlevideo.com/0.0.0.0$' "$block_file" || fail "YouTube CDN IPv4 rule is missing"
 grep -q '^address=/googlevideo.com/::$' "$block_file" || fail "YouTube CDN IPv6 rule is missing"
+grep -q '^address=/t.co/0.0.0.0$' "$block_file" || fail "X redirect IPv4 rule is missing"
+grep -q '^address=/t.co/::$' "$block_file" || fail "X redirect IPv6 rule is missing"
+grep -q '^address=/twimg.com/0.0.0.0$' "$block_file" || fail "X media IPv4 rule is missing"
+grep -q '^address=/twimg.com/::$' "$block_file" || fail "X media IPv6 rule is missing"
 
 status=$(run_at "2026-09-04 10:01" status)
 assert_contains "$status" '"active":true'
 assert_contains "$status" '"mode":"scheduled"'
-assert_contains "$status" '"domainCount":8'
+assert_contains "$status" '"domainCount":11'
 
 status=$(run_at "2026-09-04 10:02" disable)
 [[ ! -e $block_file ]] || fail "the challenge override did not remove DNS rules"

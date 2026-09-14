@@ -4,7 +4,9 @@ var PRESETS = [
   { key: "facebook", label: "Facebook", domains: ["facebook.com"], defaultEnabled: true },
   { key: "instagram", label: "Instagram", domains: ["instagram.com"], defaultEnabled: true },
   { key: "threads", label: "Threads", domains: ["threads.net"], defaultEnabled: true },
-  { key: "x", label: "X / Twitter", domains: ["x.com", "twitter.com"], defaultEnabled: true },
+  { key: "x", label: "X / Twitter", domains: [
+    "x.com", "twitter.com", "t.co", "twimg.com"
+  ], defaultEnabled: true },
   { key: "tiktok", label: "TikTok", domains: ["tiktok.com"], defaultEnabled: true },
   { key: "reddit", label: "Reddit", domains: ["reddit.com"], defaultEnabled: true },
   { key: "youtube", label: "YouTube", domains: [
