@@ -24,9 +24,9 @@ Discord, LinkedIn, Pinterest, and Snapchat are available but off initially.
 You can also add custom domains. Selecting `example.com` blocks that domain and
 all of its subdomains.
 
-The YouTube preset also blocks its video CDN, image, API, and embed domains so
-an already-loaded YouTube page cannot continue fetching media from a separate
-hostname.
+The X preset also blocks its media CDN and short-link domain. The YouTube preset
+blocks its video CDN, image, API, and embed domains. This keeps an already-loaded
+page from fetching content from a separate hostname.
 
 ## Install
 

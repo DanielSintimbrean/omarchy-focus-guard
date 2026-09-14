@@ -12,6 +12,11 @@ YOUTUBE_SUPPORT_DOMAINS=(
   youtube-nocookie.com
 )
 
+X_SUPPORT_DOMAINS=(
+  t.co
+  twimg.com
+)
+
 root_prefix=${FOCUS_GUARD_ROOT:-}
 etc_dir="${root_prefix}/etc/focus-guard"
 state_dir="${root_prefix}/var/lib/focus-guard"
@@ -81,8 +86,31 @@ write_state() {
   mv -f "$temp" "$state_file"
 }
 
+ensure_support_domains() {
+  local trigger=$1 temp domain changed=0
+  shift
+  grep -Fxq "$trigger" "$domains_file" 2>/dev/null || return 0
+
+  temp=$(mktemp "$domains_file.XXXXXX")
+  cp "$domains_file" "$temp"
+  for domain in "$@"; do
+    if ! grep -Fxq "$domain" "$temp"; then
+      printf '%s\n' "$domain" >> "$temp"
+      changed=1
+    fi
+  done
+
+  if (( changed == 1 )); then
+    sort -u -o "$temp" "$temp"
+    chmod 644 "$temp"
+    mv -f "$temp" "$domains_file"
+  else
+    rm -f "$temp"
+  fi
+}
+
 ensure_defaults() {
-  local temp domain changed
+  local temp
   ensure_dirs
   if [[ ! -f $schedule_file ]]; then
     temp=$(mktemp "$schedule_file.XXXXXX")
@@ -99,24 +127,8 @@ ensure_defaults() {
     mv -f "$temp" "$domains_file"
   fi
 
-  if grep -Fxq 'youtube.com' "$domains_file" 2>/dev/null; then
-    temp=$(mktemp "$domains_file.XXXXXX")
-    cp "$domains_file" "$temp"
-    changed=0
-    for domain in "${YOUTUBE_SUPPORT_DOMAINS[@]}"; do
-      if ! grep -Fxq "$domain" "$temp"; then
-        printf '%s\n' "$domain" >> "$temp"
-        changed=1
-      fi
-    done
-    if (( changed == 1 )); then
-      sort -u -o "$temp" "$temp"
-      chmod 644 "$temp"
-      mv -f "$temp" "$domains_file"
-    else
-      rm -f "$temp"
-    fi
-  fi
+  ensure_support_domains youtube.com "${YOUTUBE_SUPPORT_DOMAINS[@]}"
+  ensure_support_domains x.com "${X_SUPPORT_DOMAINS[@]}"
 
   if [[ ! -f $state_file ]]; then
     write_state 0 0 0
