@@ -45,10 +45,15 @@ to a bar section in `~/.config/omarchy/shell.json`:
 
 Open the panel and choose **Install system blocker**. A graphical administrator
 prompt appears once. Setup installs the `dnsmasq` package and a small systemd
-helper, then briefly reloads DNS.
+helper, then briefly reloads DNS. It also installs the browser focus page for
+Zen Browser and Chromium when they are present. Restart each browser after
+setup to load the extension.
 
 Omarchy does not run plugin install hooks, so this explicit setup step is
 required.
+
+If the system blocker was already installed before the browser page was added,
+open the panel and choose **Install or update browser page** once.
 
 ## Use
 
@@ -57,6 +62,10 @@ The shield in the bar shows the current state. Left-click it to open the panel.
 - During the work window, blocking starts automatically.
 - **Enable now** starts a manual session. It lasts through the end of the next
   scheduled work period.
+- When blocking is active, Zen Browser and Chromium redirect selected sites to
+  a small Focus Guard page with a **Close this tab** button. The browser
+  extension reads the active state and blocked domains from a local,
+  read-only native helper.
 - **Pause blocking** opens one arithmetic challenge with three operands between
   100 and 999 and two random addition or subtraction operators.
 - A wrong answer replaces the entire problem. A correct answer pauses blocking
@@ -101,9 +110,13 @@ uninstaller first from the plugin directory:
 sudo bash system/uninstall.sh
 ```
 
+Restart Zen Browser and Chromium after uninstalling. If Zen has already copied
+the system extension into a profile, remove **Focus Guard** from Zen's Add-ons
+page as well.
+
 The uninstaller removes Focus Guard's system files and DNS rules. It leaves the
-`dnsmasq` package installed because another program may use it. The user config
-at `~/.config/focus-guard/config.json` is also left in place.
+`dnsmasq` and Python packages installed because other programs may use them.
+The user config at `~/.config/focus-guard/config.json` is also left in place.
 
 ## Commands
 
@@ -158,6 +171,8 @@ changes to the helper.
 ## Limits
 
 - Focus Guard blocks domains, not individual HTTPS pages or URL paths.
+- Zen Browser and Chromium show the Focus Guard page when their extension is
+  loaded. Other browsers show their normal DNS error page.
 - Existing browser connections may continue briefly until they reconnect.
 - Custom DNS clients and VPNs may bypass the blocker.
 - A user with administrator access can bypass or uninstall it.

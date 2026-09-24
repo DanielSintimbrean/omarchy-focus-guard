@@ -15,8 +15,11 @@ if ! command -v pacman >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v dnsmasq >/dev/null 2>&1; then
-  pacman --noconfirm --needed -S dnsmasq
+packages=()
+command -v dnsmasq >/dev/null 2>&1 || packages+=(dnsmasq)
+command -v python3 >/dev/null 2>&1 || packages+=(python)
+if ((${#packages[@]})); then
+  pacman --noconfirm --needed -S "${packages[@]}"
 fi
 
 install -Dm755 "$script_dir/focus-guardctl" /usr/local/bin/focus-guardctl
@@ -29,6 +32,8 @@ install -Dm644 "$script_dir/90-focus-guard-dns.conf" /etc/NetworkManager/conf.d/
 
 mkdir -p /etc/focus-guard /var/lib/focus-guard /etc/NetworkManager/dnsmasq.d
 chmod 755 /etc/focus-guard /var/lib/focus-guard /etc/NetworkManager/dnsmasq.d
+
+bash "$script_dir/install-browser-integration.sh"
 
 resolver_backup=/var/lib/focus-guard/resolv.conf.original
 resolver_missing=/var/lib/focus-guard/resolv.conf.was-missing

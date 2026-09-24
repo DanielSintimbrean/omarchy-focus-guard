@@ -1,0 +1,265 @@
+:root {
+  color-scheme: light;
+  font-family: "Inter", "Avenir Next", Avenir, system-ui, sans-serif;
+  background: #e9ede7;
+  color: #1d2b2c;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --ink: #1d2b2c;
+  --muted: #657575;
+  --paper: #f5f4ed;
+  --edge: #d7ded7;
+  --copper: #b66e4b;
+  --moss: #55796e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(85, 121, 110, 0.075) 50%, transparent calc(50% + 1px)),
+    #e9ede7;
+}
+
+.page {
+  width: min(100%, 920px);
+  min-height: min(720px, calc(100vh - 80px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(28px, 5vw, 52px) clamp(24px, 7vw, 76px) 32px;
+  background: var(--paper);
+  border: 1px solid rgba(29, 43, 44, 0.08);
+  box-shadow: 0 24px 80px rgba(31, 49, 47, 0.08);
+}
+
+.wordmark {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+}
+
+.wordmark-mark {
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--moss);
+  border-radius: 50%;
+  position: relative;
+}
+
+.wordmark-mark::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  border-radius: 50%;
+  background: var(--copper);
+}
+
+.message {
+  width: min(100%, 510px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: auto 0;
+  padding: 46px 0 54px;
+}
+
+.focus-mark {
+  width: 54px;
+  height: 54px;
+  margin: 0 0 40px 4px;
+  position: relative;
+}
+
+.focus-mark-core {
+  width: 9px;
+  height: 9px;
+  position: absolute;
+  inset: 22px;
+  border-radius: 50%;
+  background: var(--copper);
+}
+
+.focus-mark-orbit {
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(85, 121, 110, 0.55);
+  border-radius: 50%;
+}
+
+.focus-mark-tick {
+  position: absolute;
+  display: block;
+  background: var(--moss);
+}
+
+.focus-mark-tick-top,
+.focus-mark-tick-bottom {
+  width: 1px;
+  height: 8px;
+  left: 26px;
+}
+
+.focus-mark-tick-left,
+.focus-mark-tick-right {
+  width: 8px;
+  height: 1px;
+  top: 26px;
+}
+
+.focus-mark-tick-top { top: 0; }
+.focus-mark-tick-right { right: 0; }
+.focus-mark-tick-bottom { bottom: 0; }
+.focus-mark-tick-left { left: 0; }
+
+.eyebrow {
+  margin: 0 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--moss);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--copper);
+}
+
+h1 {
+  max-width: 560px;
+  margin: 0;
+  color: var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: clamp(48px, 8vw, 82px);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.99;
+}
+
+h1 br {
+  display: block;
+}
+
+.description {
+  max-width: 370px;
+  margin: 24px 0 30px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+button {
+  min-height: 48px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 0 19px;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+button:hover {
+  background: #324344;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:focus-visible {
+  outline: 3px solid var(--copper);
+  outline-offset: 4px;
+}
+
+.footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: #788684;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.015em;
+}
+
+.footer-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--edge);
+}
+
+@media (max-width: 540px) {
+  body {
+    display: block;
+    padding: 0;
+    background: var(--paper);
+  }
+
+  .page {
+    width: 100%;
+    min-height: 100svh;
+    padding: 26px 25px 24px;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .message {
+    padding: 44px 0;
+  }
+
+  .focus-mark {
+    margin-bottom: 34px;
+  }
+
+  .description {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: clamp(41px, 12.8vw, 62px);
+  }
+
+  .footer {
+    gap: 9px;
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

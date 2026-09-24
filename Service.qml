@@ -14,6 +14,7 @@ Item {
   readonly property string configPath: configDir + "/config.json"
   readonly property string controllerPath: "/usr/local/bin/focus-guardctl"
   readonly property string installScriptPath: Guard.fileUrlPath(Qt.resolvedUrl("system/install.sh"))
+  readonly property string browserIntegrationScriptPath: Guard.fileUrlPath(Qt.resolvedUrl("system/install-browser-integration.sh"))
 
   property bool installed: false
   property bool configLoaded: false
@@ -42,6 +43,7 @@ Item {
   property string actionKind: ""
   property string actionOutput: ""
   property string actionError: ""
+  property string browserSetupMessage: ""
   property bool pendingConfigSync: false
   readonly property bool busy: actionProcess.running
 
@@ -178,6 +180,11 @@ Item {
     return startAction("setup", ["pkexec", "/usr/bin/bash", installScriptPath])
   }
 
+  function installBrowserIntegration() {
+    infoMessage = "Installing the browser focus page…"
+    return startAction("browser-integration", ["pkexec", "/usr/bin/bash", browserIntegrationScriptPath])
+  }
+
   function syncConfig() {
     if (!installed) return false
     if (actionProcess.running) {
@@ -213,6 +220,16 @@ Item {
       return "Administrator authentication was cancelled."
     var lines = message.split("\n")
     return lines.length ? lines[lines.length - 1] : "The Focus Guard command failed."
+  }
+
+  function browserSetupSummary(output) {
+    var lines = String(output || "").split("\n")
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].indexOf("Browser focus page installed") === 0
+          || lines[i].indexOf("No Zen Browser or Chromium installation") === 0)
+        return lines[i]
+    }
+    return ""
   }
 
   function notifyState(isActive) {
@@ -309,16 +326,20 @@ Item {
         root.errorMessage = ""
         if (finishedKind === "setup") {
           root.installed = true
+          root.browserSetupMessage = root.browserSetupSummary(output)
           root.infoMessage = "System blocker installed. Applying your settings…"
           root.pendingConfigSync = true
         } else if (finishedKind === "configure") {
-          root.infoMessage = "Settings saved."
+          root.infoMessage = root.browserSetupMessage || "Settings saved."
+          root.browserSetupMessage = ""
         } else if (finishedKind === "enable") {
           root.infoMessage = "Focus session started."
         } else if (finishedKind === "disable") {
           root.infoMessage = "Blocking paused until the next work period."
         } else if (finishedKind === "resume") {
           root.infoMessage = "Schedule resumed."
+        } else if (finishedKind === "browser-integration") {
+          root.infoMessage = output.trim() || "Browser focus page installed. Restart Zen and Chromium to load it."
         }
       }
       refreshDelay.restart()

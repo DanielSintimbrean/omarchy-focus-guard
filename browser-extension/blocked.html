@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Focus Guard · Hora de volver</title>
+    <link rel="stylesheet" href="blocked.css">
+    <script src="blocked.js" defer></script>
+  </head>
+  <body>
+    <main class="page">
+      <header class="wordmark" aria-label="Focus Guard">
+        <span class="wordmark-mark" aria-hidden="true"></span>
+        <span>Focus Guard</span>
+      </header>
+
+      <section class="message" aria-labelledby="title">
+        <div class="focus-mark" aria-hidden="true">
+          <span class="focus-mark-core"></span>
+          <span class="focus-mark-orbit"></span>
+          <span class="focus-mark-tick focus-mark-tick-top"></span>
+          <span class="focus-mark-tick focus-mark-tick-right"></span>
+          <span class="focus-mark-tick focus-mark-tick-bottom"></span>
+          <span class="focus-mark-tick focus-mark-tick-left"></span>
+        </div>
+
+        <p class="eyebrow"><span class="status-dot"></span> PÁGINA BLOQUEADA</p>
+        <h1 id="title">Hora de volver<br>a tu tarea.</h1>
+        <p class="description">Esta página puede esperar. Cierra la pestaña y sigue con lo que habías empezado.</p>
+
+        <button id="close-tab" type="button">Cerrar esta pestaña</button>
+      </section>
+
+      <footer class="footer">
+        <span>Una cosa a la vez.</span>
+        <span class="footer-rule" aria-hidden="true"></span>
+        <span>Vuelve cuando estés listo.</span>
+      </footer>
+    </main>
+  </body>
+</html>

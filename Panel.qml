@@ -369,6 +369,23 @@ Panel {
               onClicked: root.primaryAction()
             }
 
+            Button {
+              visible: root.service && root.service.installed
+              width: parent.width
+              text: root.service && root.service.busy ? "Working…" : "Install or update browser page"
+              iconText: "󰖟"
+              foreground: root.dim
+              accent: root.dim
+              fontFamily: root.fontFamily
+              bordered: false
+              selected: false
+              focusable: true
+              enabled: root.service && !root.service.busy
+              horizontalPadding: Style.space(16)
+              verticalPadding: Style.space(6)
+              onClicked: root.service.installBrowserIntegration()
+            }
+
             BorderSurface {
               width: parent.width
               implicitHeight: scheduleSummary.implicitHeight + Style.space(20)
@@ -433,7 +450,7 @@ Panel {
             Text {
               visible: root.service && !root.service.installed
               width: parent.width
-              text: "Setup installs dnsmasq and briefly restarts DNS. An administrator prompt appears once."
+              text: "Setup installs the DNS blocker and the focus page for Zen and Chromium. Restart both browsers after setup. An administrator prompt appears once."
               color: root.dimmer
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
