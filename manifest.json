@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "Daniel Sintimbrean",
   "license": "MIT",
-  "description": "System-wide distraction blocking with a weekday schedule and an arithmetic pause before disabling",
+  "description": "Scheduled distraction blocking with browser focus pages and an arithmetic pause before disabling",
   "kinds": [
     "service",
     "bar-widget"

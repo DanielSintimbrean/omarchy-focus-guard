@@ -12,6 +12,29 @@ systemctl disable --now focus-guard.timer 2>/dev/null || true
 rm -f /etc/NetworkManager/dnsmasq.d/90-focus-guard.conf
 rm -f /etc/NetworkManager/conf.d/90-focus-guard-dns.conf
 
+zen_extension_path=/var/lib/focus-guard/zen-browser-extension.path
+if [[ -r $zen_extension_path ]]; then
+  read -r zen_extension_file < "$zen_extension_path"
+  case $zen_extension_file in
+    */distribution/extensions/focus-guard@danielsintimbrean.xpi)
+      rm -f -- "$zen_extension_file"
+      rmdir --ignore-fail-on-non-empty "$(dirname -- "$zen_extension_file")" 2>/dev/null || true
+      ;;
+  esac
+fi
+
+chromium_extension_id_file=/var/lib/focus-guard/chromium-browser-extension.id
+if [[ -r $chromium_extension_id_file ]]; then
+  read -r chromium_extension_id < "$chromium_extension_id_file"
+  if [[ $chromium_extension_id =~ ^[a-p]{32}$ ]]; then
+    rm -f "/usr/share/chromium/extensions/$chromium_extension_id.json"
+  fi
+fi
+rm -f /usr/lib/mozilla/native-messaging-hosts/io.github.danielsintimbrean.focus_guard.json
+rm -f /etc/chromium/native-messaging-hosts/io.github.danielsintimbrean.focus_guard.json
+rm -f /usr/local/bin/focus-guard-browser-host /usr/share/focus-guard/focus-guard.crx
+rmdir --ignore-fail-on-non-empty /usr/share/focus-guard 2>/dev/null || true
+
 if [[ -x /usr/local/bin/focus-guard-nsswitch ]]; then
   /usr/local/bin/focus-guard-nsswitch restore || true
 fi
