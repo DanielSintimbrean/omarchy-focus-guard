@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "Guard.js" as Guard
 
@@ -26,10 +27,10 @@ Panel {
   property string challengeError: ""
 
   readonly property var barIdentity: hostWidget || root
-  readonly property color fg: bar ? bar.foreground : Color.foreground
+  readonly property color fg: bar ? bar.foreground : Commons.Color.foreground
   readonly property color dim: Qt.darker(fg, 1.45)
   readonly property color dimmer: Qt.darker(fg, 1.85)
-  readonly property color lockColor: Color.accent
+  readonly property color lockColor: Commons.Color.accent
   readonly property color overrideColor: "#d8a657"
   readonly property color stateColor: service && service.active
     ? lockColor
@@ -332,9 +333,9 @@ Panel {
               implicitHeight: messageText.implicitHeight + Style.space(16)
               radius: Style.cornerRadius
               color: root.service && root.service.errorMessage !== ""
-                ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.12)
+                ? Qt.rgba(Commons.Color.urgent.r, Commons.Color.urgent.g, Commons.Color.urgent.b, 0.12)
                 : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.05)
-              borderSpec: Border.flat(root.service && root.service.errorMessage !== "" ? Color.urgent : root.dimmer, 1)
+              borderSpec: Border.flat(root.service && root.service.errorMessage !== "" ? Commons.Color.urgent : root.dimmer, 1)
 
               Text {
                 id: messageText
@@ -346,7 +347,7 @@ Panel {
                 text: root.service && root.service.errorMessage !== ""
                   ? root.service.errorMessage
                   : (root.service ? root.service.infoMessage : "")
-                color: root.service && root.service.errorMessage !== "" ? Color.urgent : root.dim
+                color: root.service && root.service.errorMessage !== "" ? Commons.Color.urgent : root.dim
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.bodySmall
                 wrapMode: Text.WordWrap
@@ -390,7 +391,7 @@ Panel {
               width: parent.width
               implicitHeight: scheduleSummary.implicitHeight + Style.space(20)
               color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.035)
-              borderSpec: Border.controlSpec("normal", root.fg, Color.accent)
+              borderSpec: Border.controlSpec("normal", root.fg, Commons.Color.accent)
               radius: Style.cornerRadius
 
               Row {
@@ -529,7 +530,7 @@ Panel {
                   text: root.draftStart
                   placeholderText: "09:00"
                   foreground: root.fg
-                  accent: Color.accent
+                  accent: Commons.Color.accent
                   inputMethodHints: Qt.ImhFormattedNumbersOnly
                   onTextChanged: root.draftStart = text
                 }
@@ -553,7 +554,7 @@ Panel {
                   text: root.draftEnd
                   placeholderText: "17:00"
                   foreground: root.fg
-                  accent: Color.accent
+                  accent: Commons.Color.accent
                   inputMethodHints: Qt.ImhFormattedNumbersOnly
                   onTextChanged: root.draftEnd = text
                 }
@@ -595,7 +596,7 @@ Panel {
                   text: modelData.label
                   iconText: root.presetSelected(modelData.key) ? "✓" : ""
                   foreground: root.fg
-                  accent: Color.accent
+                  accent: Commons.Color.accent
                   fontFamily: root.fontFamily
                   fontSize: Style.font.bodySmall
                   selected: root.presetSelected(modelData.key)
@@ -632,7 +633,7 @@ Panel {
                   implicitHeight: Math.max(customDomainLabel.implicitHeight, removeDomainButton.implicitHeight) + Style.space(8)
                   color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.035)
                   radius: Style.cornerRadius
-                  borderSpec: Border.controlSpec("normal", root.fg, Color.accent)
+                  borderSpec: Border.controlSpec("normal", root.fg, Commons.Color.accent)
 
                   Text {
                     id: customDomainLabel
@@ -656,7 +657,7 @@ Panel {
                     iconText: "󰆴"
                     tooltipText: "Remove domain"
                     foreground: root.fg
-                    hoverColor: Color.urgent
+                    hoverColor: Commons.Color.urgent
                     fontFamily: root.fontFamily
                     onClicked: root.removeCustomDomain(parent.index)
                   }
@@ -682,7 +683,7 @@ Panel {
                 width: parent.width - addDomainButton.width - parent.spacing
                 placeholderText: "example.com"
                 foreground: root.fg
-                accent: Color.accent
+                accent: Commons.Color.accent
                 onAccepted: root.addCustomDomain()
               }
 
@@ -710,7 +711,7 @@ Panel {
               visible: root.formError !== ""
               width: parent.width
               text: root.formError
-              color: Color.urgent
+              color: Commons.Color.urgent
               font.family: root.fontFamily
               font.pixelSize: Style.font.bodySmall
               wrapMode: Text.WordWrap
@@ -735,7 +736,7 @@ Panel {
               Button {
                 text: "Save changes"
                 foreground: root.fg
-                accent: Color.accent
+                accent: Commons.Color.accent
                 fontFamily: root.fontFamily
                 selected: true
                 bordered: true
@@ -848,7 +849,7 @@ Panel {
               visible: root.challengeError !== ""
               width: parent.width
               text: root.challengeError
-              color: Color.urgent
+              color: Commons.Color.urgent
               font.family: root.fontFamily
               font.pixelSize: Style.font.bodySmall
               horizontalAlignment: Text.AlignHCenter
